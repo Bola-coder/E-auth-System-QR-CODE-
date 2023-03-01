@@ -24,7 +24,9 @@ const productSchema = mongoose.Schema({
   },
   image: {
     type: String,
-    required: [true, "A product should have an image"],
+    required: function () {
+      return !this.imageFile;
+    },
   },
   quantity: {
     type: Number,
@@ -35,6 +37,16 @@ const productSchema = mongoose.Schema({
     default: Date.now,
   },
 });
+
+productSchema
+  .virtual("imageFile")
+  .get(function () {
+    return this._imageFile;
+  })
+  .set(function (file) {
+    this._imageFile = file;
+    this.image = file.filename;
+  });
 
 const Products = mongoose.model("Products", productSchema);
 module.exports = Products;

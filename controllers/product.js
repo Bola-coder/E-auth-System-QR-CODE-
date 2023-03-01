@@ -19,8 +19,11 @@ const getAllProducts = CatchAsync(async (req, res, next) => {
 
 const createProduct = CatchAsync(async (req, res, next) => {
   // const {name, description, price, category, image, quantity} = req.body;
+  console.log(req.body);
 
-  const newProduct = await Products.create(req.body);
+  const newProduct = new Products(req.body);
+  newProduct.imageFile = req.file;
+  await newProduct.save();
 
   if (!newProduct) {
     return next(new AppError("Failed to create new product!", 404));

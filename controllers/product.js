@@ -96,10 +96,24 @@ const deleteProduct = CatchAsync(async (req, res, next) => {
   });
 });
 
+const getLatestProducts = CatchAsync(async (req, res, next) => {
+  const latestProducts = await Products.find().sort("-date").limit(15);
+  if (!latestProducts) {
+    return next(new AppError("Unable to fetch latest products", 404));
+  }
+  res.status(200).json({
+    status: "success",
+    data: {
+      products: latestProducts,
+    },
+  });
+});
+
 module.exports = {
   getAllProducts,
   createProduct,
   getProduct,
   updateProduct,
   deleteProduct,
+  getLatestProducts,
 };

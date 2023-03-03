@@ -87,6 +87,7 @@ const readQRData = () => {
     });
 };
 
+// Signup users
 const signup = CatchAsync(async (req, res, next) => {
   const { name, email, password } = req.body;
   const newUser = await User.create({
@@ -107,6 +108,7 @@ const signup = CatchAsync(async (req, res, next) => {
   });
 });
 
+// Login Users
 const login = CatchAsync(async (req, res, next) => {
   const { email, password } = req.body;
 
@@ -127,4 +129,48 @@ const login = CatchAsync(async (req, res, next) => {
   });
 });
 
-module.exports = { login, signup, readQRData };
+// Protect Route from being accessed by anauthorised users
+const protectRoute = CatchAsync(async (req, res, next) => {
+  let token;
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+
+  if (!token) {
+    return next(
+      new AppError(
+        "You are not logged in. Please log in to get access to this route!",
+        401
+      )
+    );
+  }
+
+  const decoded = await jwt.verify(token, process.env.JwtSecret);
+
+  const user = await User.findById(decoded.id);
+
+  if (!user) {
+    return next(
+      new AppError("The user this token belongs to does no longer exist!.", 401)
+    );
+  }
+
+  req.user = user;
+  next();
+});
+
+const restrictTo = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return next(
+        new AppError("You do not have permission to perform this action")
+      );
+    }
+    next();
+  };
+};
+
+module.exports = { login, signup, readQRData, protectRoute, restrictTo };

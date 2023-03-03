@@ -7,12 +7,17 @@ const {
   updateProduct,
   deleteProduct,
 } = require("./../controllers/product");
+const { protectRoute } = require("./../controllers/authController");
 const router = express.Router();
 
 router
   .route("/")
   .get(getAllProducts)
-  .post(upload.single("image"), createProduct);
-router.route("/:id").get(getProduct).patch(updateProduct).delete(deleteProduct);
+  .post(protectRoute, upload.single("image"), createProduct);
+router
+  .route("/:id")
+  .get(getProduct)
+  .patch(protectRoute, updateProduct)
+  .delete(protectRoute, deleteProduct);
 
 module.exports = router;

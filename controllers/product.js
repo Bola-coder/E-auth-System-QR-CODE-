@@ -109,6 +109,20 @@ const getLatestProducts = CatchAsync(async (req, res, next) => {
   });
 });
 
+const getProductByGender = (gender) =>
+  CatchAsync(async (req, res, next) => {
+    const product = await Products.find({ category: gender });
+    if (!product) {
+      return next(new AppError("Failed to fetch men products!", 404));
+    }
+    res.status(200).json({
+      status: "success",
+      data: {
+        product,
+      },
+    });
+  });
+
 module.exports = {
   getAllProducts,
   createProduct,
@@ -116,4 +130,5 @@ module.exports = {
   updateProduct,
   deleteProduct,
   getLatestProducts,
+  getProductByGender,
 };

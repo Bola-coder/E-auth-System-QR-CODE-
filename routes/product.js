@@ -7,6 +7,7 @@ const {
   updateProduct,
   deleteProduct,
   getLatestProducts,
+  getProductByGender,
 } = require("./../controllers/product");
 const { protectRoute } = require("./../controllers/authController");
 const router = express.Router();
@@ -16,6 +17,9 @@ router
   .get(getAllProducts)
   .post(protectRoute, upload.single("image"), createProduct);
 router.route("/latest").get(getLatestProducts);
+router.route("/men").get(getProductByGender("men"));
+router.route("/women").get(getProductByGender("women"));
+router.route("/unisex").get(getProductByGender("unisex"));
 router
   .route("/:id")
   .get(getProduct)

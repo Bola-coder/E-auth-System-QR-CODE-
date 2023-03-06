@@ -3,6 +3,7 @@ const morgan = require("morgan");
 const cors = require("cors");
 const authRouter = require("./routes/authRoute");
 const productRouter = require("./routes/product");
+const cartRouter = require("./routes/cart");
 const errorController = require("./controllers/errorControlelr");
 
 const app = express();
@@ -15,6 +16,7 @@ app.use(express.json());
 
 app.use("/auth", authRouter);
 app.use("/products", productRouter);
+app.use("/cart", cartRouter);
 app.use(errorController);
 
 module.exports = app;

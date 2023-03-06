@@ -41,7 +41,7 @@ const createProduct = CatchAsync(async (req, res, next) => {
   });
 });
 
-//Get a Single Prodict
+//Get a Single Product
 //public
 const getProduct = CatchAsync(async (req, res, next) => {
   const product = await Products.findById(req.params.id);
@@ -96,6 +96,8 @@ const deleteProduct = CatchAsync(async (req, res, next) => {
   });
 });
 
+// Get Latest product and limit result to 15
+// Public
 const getLatestProducts = CatchAsync(async (req, res, next) => {
   const latestProducts = await Products.find().sort("-date").limit(15);
   if (!latestProducts) {
@@ -109,11 +111,13 @@ const getLatestProducts = CatchAsync(async (req, res, next) => {
   });
 });
 
+// Get products based on gender
+// Public
 const getProductByGender = (gender) =>
   CatchAsync(async (req, res, next) => {
     const product = await Products.find({ category: gender });
     if (!product) {
-      return next(new AppError("Failed to fetch men products!", 404));
+      return next(new AppError(`Failed to fetch ${gender} products!`, 404));
     }
     res.status(200).json({
       status: "success",

@@ -5,8 +5,8 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon server.js"
-  },
+    "start": "nodemon server.js",
+    "prod": "cross-env NODE_ENV=production nodemon server.js"  },
   "keywords": [
     "MERN",
     "E-auth"
@@ -16,6 +16,7 @@
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
+    "cross-env": "^7.0.3",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.0",

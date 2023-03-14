@@ -27,6 +27,10 @@ const userSchema = mongoose.Schema({
     enum: ["user", "admin", "superadmin"],
     default: "user",
   },
+  qrCode: {
+    type: String,
+    default: "",
+  },
 });
 
 userSchema.pre("save", async function (next) {

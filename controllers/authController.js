@@ -7,6 +7,7 @@ const https = require("https");
 const axios = require("axios");
 const User = require("./../models/userModel");
 const CatchAsync = require("./../utils/CatchAsync");
+const { promisify } = require("util");
 
 const signJwt = (id) => {
   return jwt.sign({ id }, process.env.JwtSecret, {
@@ -27,25 +28,30 @@ const generateRandomString = (length) => {
   return result;
 };
 
-const generateQRCode = () => {
-  const qrData = generateRandomString(6);
+const generateQRCode = (user) => {
+  let output = "";
+  const userEmail = user.email;
+  const randomString = generateRandomString(6);
+  const qrData = userEmail + "*" + randomString;
   //   console.log(qrData);
-  qrcode.toDataURL(qrData, function (err, url) {
-    if (err) console.error(err);
-    console.log("QRCODE DATA:", url);
-    return url;
-  });
+  return promisify(qrcode.toDataURL)(qrData)
+    .then((url) => {
+      output = url;
+      return output;
+    })
+    .catch((err) => {
+      throw err;
+    });
+  return output;
 };
 
 const readQRData = () => {
   const url = generateQRCode();
   // Load the QR code image
   const image_url = url; // Replace with actual image URL
-
   // https.get(image_url, (res) => {});
-
   const axiosInstance = axios.create({
-    baseURL: "http://localhost:8080", // set the port number here
+    baseURL: "http://localhost:8000", // set the port number here
     // other options
   });
   axiosInstance
@@ -87,6 +93,7 @@ const readQRData = () => {
     });
 };
 
+// ROUTE: /auth/signup
 // Signup users
 const signup = CatchAsync(async (req, res, next) => {
   const { name, email, password } = req.body;
@@ -108,6 +115,7 @@ const signup = CatchAsync(async (req, res, next) => {
   });
 });
 
+// ROUTE: /auth/login
 // Login Users
 const login = CatchAsync(async (req, res, next) => {
   const { email, password } = req.body;
@@ -120,8 +128,24 @@ const login = CatchAsync(async (req, res, next) => {
   if (!user || !(await user.comparePassword(password, user.password))) {
     return next(new AppError(`Invalid email or password`, 401));
   }
-  // generateQRCode(user);
-  readQRData();
+  generateQRCode(user)
+    .then((output) => {
+      user.qrCode = output;
+    })
+    .catch((err) => {
+      console.log("Error", err);
+    });
+
+  // await user.save();
+  user
+    .save()
+    .then((doc) => {
+      console.log(doc);
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+
   const token = signJwt(user._id);
   res.status(200).json({
     status: "success",
@@ -129,6 +153,7 @@ const login = CatchAsync(async (req, res, next) => {
   });
 });
 
+// ROUTE: none
 // Protect Route from being accessed by anauthorised users
 const protectRoute = CatchAsync(async (req, res, next) => {
   let token;
@@ -162,6 +187,7 @@ const protectRoute = CatchAsync(async (req, res, next) => {
   next();
 });
 
+// Restrict Route Access
 const restrictTo = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
@@ -173,4 +199,16 @@ const restrictTo = (...roles) => {
   };
 };
 
-module.exports = { login, signup, readQRData, protectRoute, restrictTo };
+// @ROUTE: /auth/verify
+// Verify User based on The QRCODE
+
+const VerifyUserBasedOnQRCode = CatchAsync(async (req, res, next) => {});
+
+module.exports = {
+  login,
+  signup,
+  generateQRCode,
+  readQRData,
+  protectRoute,
+  restrictTo,
+};

@@ -1,10 +1,6 @@
 const AppError = require("../utils/AppError");
 const jwt = require("jsonwebtoken");
 const qrcode = require("qrcode");
-const jsqr = require("jsqr");
-const Jimp = require("jimp");
-const https = require("https");
-const axios = require("axios");
 const User = require("./../models/userModel");
 const CatchAsync = require("./../utils/CatchAsync");
 const { promisify } = require("util");
@@ -28,12 +24,23 @@ const generateRandomString = (length) => {
   return result;
 };
 
-const generateQRCode = (user) => {
+const generateQRCode = async (user) => {
   let output = "";
   const userEmail = user.email;
   const randomString = generateRandomString(6);
   const qrData = userEmail + "*" + randomString;
-  //   console.log(qrData);
+  // Save QRData to database
+  const currentUser = await User.findById(user._id);
+  currentUser.qrData = qrData;
+  currentUser
+    .save()
+    .then((doc) => {
+      // console.log("Saving qr data", doc);
+    })
+    .catch((err) => {
+      console.log("Saving QR DATA Error", err);
+    });
+  // Return the generated QRData
   return promisify(qrcode.toDataURL)(qrData)
     .then((url) => {
       output = url;
@@ -42,55 +49,7 @@ const generateQRCode = (user) => {
     .catch((err) => {
       throw err;
     });
-  return output;
-};
-
-const readQRData = () => {
-  const url = generateQRCode();
-  // Load the QR code image
-  const image_url = url; // Replace with actual image URL
-  // https.get(image_url, (res) => {});
-  const axiosInstance = axios.create({
-    baseURL: "http://localhost:8000", // set the port number here
-    // other options
-  });
-  axiosInstance
-    .get(image_url)
-    .then(function (res) {
-      let data = [];
-      res.on("data", (chunk) => {
-        data.push(chunk);
-      });
-      res.on("end", () => {
-        const buffer = Buffer.concat(data);
-        Jimp.read(buffer, function (err, image) {
-          if (err) console.error(err);
-          const width = image.bitmap.width;
-          const height = image.bitmap.height;
-          const pixels = new Uint8ClampedAr() - ray(width * height * 4);
-          for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-              const idx = (y * width + x) * 4;
-              const rgba = Jimp.intToRGBA(image.getPixelColor(x, y));
-              pixels[idx] = rgba.r;
-              pixels[idx + 1] = rgba.g;
-              pixels[idx + 2] = rgba.b;
-              pixels[idx + 3] = rgba.a;
-            }
-          }
-          const code = jsqr(pixels, width, height);
-          if (code) {
-            const decoded_str = code.data;
-            console.log(decoded_str);
-          } else {
-            console.log("QR code not found or not readable");
-          }
-        });
-      });
-    })
-    .catch((err) => {
-      console.log("Axios error", err);
-    });
+  // return output;
 };
 
 // ROUTE: /auth/signup
@@ -102,17 +61,38 @@ const signup = CatchAsync(async (req, res, next) => {
     email,
     password,
   });
+
   if (!newUser) {
     return next(new AppError("Failed to create new user", 400));
   }
-  const token = signJwt(newUser._id);
-  res.status(200).json({
-    status: "success",
-    data: {
-      user: newUser,
-    },
-    token,
-  });
+
+  generateQRCode(newUser)
+    .then((output) => {
+      newUser.qrCode = output;
+      let code = output;
+      newUser
+        .save()
+        .then((doc) => {
+          // console.log("After saving document", doc);
+          code = doc.qrCode;
+        })
+        .catch((err) => {
+          console.log(err);
+          return next(new AppError("Login Failed", 404));
+        });
+
+      res.status(200).json({
+        status: "success",
+        code,
+        data: {
+          newUser,
+        },
+      });
+    })
+    .catch((err) => {
+      console.log("Error", err);
+      return next(new AppError("Failed to generate QR Code", 404));
+    });
 });
 
 // ROUTE: /auth/login
@@ -131,26 +111,27 @@ const login = CatchAsync(async (req, res, next) => {
   generateQRCode(user)
     .then((output) => {
       user.qrCode = output;
+      let code = output;
+      user
+        .save()
+        .then((doc) => {
+          // console.log("After saving document", doc);
+          code = doc.qrCode;
+        })
+        .catch((err) => {
+          console.log(err);
+          return next(new AppError("Login Failed", 404));
+        });
+
+      res.status(200).json({
+        status: "success",
+        code,
+      });
     })
     .catch((err) => {
       console.log("Error", err);
+      return next(new AppError("Failed to generate QR Code", 404));
     });
-
-  // await user.save();
-  user
-    .save()
-    .then((doc) => {
-      console.log(doc);
-    })
-    .catch((err) => {
-      console.log(err);
-    });
-
-  const token = signJwt(user._id);
-  res.status(200).json({
-    status: "success",
-    token,
-  });
 });
 
 // ROUTE: none
@@ -201,14 +182,30 @@ const restrictTo = (...roles) => {
 
 // @ROUTE: /auth/verify
 // Verify User based on The QRCODE
+const verifyUserBasedOnQRCode = CatchAsync(async (req, res, next) => {
+  const qrData = req.params.qrData;
 
-const VerifyUserBasedOnQRCode = CatchAsync(async (req, res, next) => {});
+  const user = await User.findOne({ qrData: qrData });
+  const userEmail = qrData.split("*")[0];
+  if (!user) {
+    return next(
+      new AppError("No user with the verification code supplied", 404)
+    );
+  }
+  // console.log("User is", user);
+  const token = signJwt(user._id);
+  res.status(200).json({
+    status: "success",
+    token,
+    message: "Authenticated fully",
+  });
+});
 
 module.exports = {
   login,
   signup,
   generateQRCode,
-  readQRData,
   protectRoute,
   restrictTo,
+  verifyUserBasedOnQRCode,
 };

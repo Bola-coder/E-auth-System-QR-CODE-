@@ -31,6 +31,10 @@ const userSchema = mongoose.Schema({
     type: String,
     default: "",
   },
+  qrData: {
+    type: String,
+    default: "",
+  },
 });
 
 userSchema.pre("save", async function (next) {

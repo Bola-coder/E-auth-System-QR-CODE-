@@ -83,10 +83,7 @@ const signup = CatchAsync(async (req, res, next) => {
 
       res.status(200).json({
         status: "success",
-        code,
-        data: {
-          newUser,
-        },
+        id: newUser._id,
       });
     })
     .catch((err) => {
@@ -125,7 +122,7 @@ const login = CatchAsync(async (req, res, next) => {
 
       res.status(200).json({
         status: "success",
-        code,
+        id: user._id,
       });
     })
     .catch((err) => {
@@ -183,21 +180,20 @@ const restrictTo = (...roles) => {
 // @ROUTE: /auth/verify
 // Verify User based on The QRCODE
 const verifyUserBasedOnQRCode = CatchAsync(async (req, res, next) => {
-  const qrData = req.params.qrData;
+  const userId = req.params.userId;
 
-  const user = await User.findOne({ qrData: qrData });
-  const userEmail = qrData.split("*")[0];
+  const user = await User.findById({ userId });
   if (!user) {
     return next(
       new AppError("No user with the verification code supplied", 404)
     );
   }
-  // console.log("User is", user);
+  console.log("User is", user);
   const token = signJwt(user._id);
   res.status(200).json({
     status: "success",
-    token,
-    message: "Authenticated fully",
+    code: user.qrCode,
+    // message: "Authenticated fully",
   });
 });
 

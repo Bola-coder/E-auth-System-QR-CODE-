@@ -182,7 +182,7 @@ const restrictTo = (...roles) => {
 const verifyUserBasedOnQRCode = CatchAsync(async (req, res, next) => {
   const userId = req.params.userId;
 
-  const user = await User.findById({ userId });
+  const user = await User.findById({ _id: userId });
   if (!user) {
     return next(
       new AppError("No user with the verification code supplied", 404)

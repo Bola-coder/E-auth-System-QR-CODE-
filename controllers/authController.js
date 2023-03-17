@@ -189,11 +189,34 @@ const verifyUserBasedOnQRCode = CatchAsync(async (req, res, next) => {
     );
   }
   console.log("User is", user);
-  const token = signJwt(user._id);
   res.status(200).json({
     status: "success",
     code: user.qrCode,
     // message: "Authenticated fully",
+  });
+});
+
+// @ROUTE: /auth/confirm
+// Confirm user and send token
+const confirmUser = CatchAsync(async (req, res, next) => {
+  const { qrData } = req.body;
+  const user = await User.findOne({ qrData: qrData });
+  if (!user) {
+    return next(
+      new AppError("failed to authenticate user with the supplied qrcode", 401)
+    );
+  }
+  const token = signJwt(user._id);
+  const { name, _id, email, role } = user;
+  res.status(200).json({
+    status: "success",
+    token,
+    user: {
+      _id,
+      name,
+      email,
+      role,
+    },
   });
 });
 
@@ -204,4 +227,5 @@ module.exports = {
   protectRoute,
   restrictTo,
   verifyUserBasedOnQRCode,
+  confirmUser,
 };

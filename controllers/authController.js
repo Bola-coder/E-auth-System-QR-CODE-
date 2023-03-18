@@ -151,7 +151,7 @@ const protectRoute = CatchAsync(async (req, res, next) => {
     );
   }
 
-  const decoded = await jwt.verify(token, process.env.JwtSecret);
+  const decoded = jwt.verify(token, process.env.JwtSecret);
 
   const user = await User.findById(decoded.id);
 

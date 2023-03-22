@@ -1,6 +1,7 @@
 const AppError = require("../utils/AppError");
 const CatchAsync = require("../utils/CatchAsync");
 const Products = require("./../models/product");
+const cloudinary = require("./../utils/cloudinary");
 
 // Get All products in database
 //public
@@ -24,9 +25,12 @@ const getAllProducts = CatchAsync(async (req, res, next) => {
 const createProduct = CatchAsync(async (req, res, next) => {
   // const {name, description, price, category, image, quantity} = req.body;
   console.log(req.body);
-
+  const result = await cloudinary.uploader.upload(req.file.path);
   const newProduct = new Products(req.body);
   newProduct.imageFile = req.file;
+  console.log(result);
+  newProduct.avatar = result.secure_url;
+  newProduct.cloudinary_id = result.public_id;
   await newProduct.save();
 
   if (!newProduct) {

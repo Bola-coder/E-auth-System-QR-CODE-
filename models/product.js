@@ -28,6 +28,12 @@ const productSchema = mongoose.Schema({
       return !this.imageFile;
     },
   },
+  avatar: {
+    type: String,
+  },
+  cloudinary_id: {
+    type: String,
+  },
   quantity: {
     type: Number,
     required: [true, "A product should have a quantity"],

@@ -49,7 +49,7 @@ const getCart = CatchAsync(async (req, res) => {
 
   const cart = await Cart.findOne({ user: userId }).populate(
     "products.product",
-    "name price"
+    "name price avatar"
   );
 
   if (!cart) {

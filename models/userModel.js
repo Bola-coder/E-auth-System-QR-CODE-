@@ -27,7 +27,7 @@ const userSchema = mongoose.Schema({
     enum: ["user", "admin", "superadmin"],
     default: "user",
   },
- 
+
   active: {
     type: Boolean,
     default: true,
@@ -45,6 +45,12 @@ const userSchema = mongoose.Schema({
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   this.password = await bcrypt.hash(this.password, 12);
+  next();
+});
+
+userSchema.pre(/^find/, function (next) {
+  // this keyword here refers to the current query
+  this.find({ active: { $ne: false } });
   next();
 });
 
